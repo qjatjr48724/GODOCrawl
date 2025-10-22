@@ -4,8 +4,10 @@ import time
 import hmac, hashlib
 import urllib.parse
 import urllib.request
+import requests
 import ssl
 import openpyxl
+import json
 from datetime import date
 from datetime import timedelta
 
@@ -24,30 +26,67 @@ cp_accesskey = "7b6058d9-7745-4cf8-9881-cf4a469c0512"
 cp_domain = "https://api-gateway.coupang.com"
 # 일단위 페이지 url
 cp_url = "/v2/providers/openapi/apis/api/v5/vendors/"+cp_venderId+"/ordersheets"
+cp_path = cp_domain+cp_url
 # 검색 시작일시
-cp_createdAtFrom = date.today()-timedelta(days=7)
+cp_createdAtFrom = str(date.today()-timedelta(days=7))
 # 검색 종료일시 (오늘날짜)
-cp_createdAtTo = date.today()
+cp_createdAtTo = str(date.today())
 
 message = datetime+method+cp_url
-
 
 #********************************************************#
 #authorize, demonstrate how to generate hmac signature here
 signature=hmac.new(cp_secretkey.encode('utf-8'),message.encode('utf-8'),hashlib.sha256).hexdigest()
 authorization  = "CEA algorithm=HmacSHA256, access-key="+cp_accesskey+", signed-date="+datetime+", signature="+signature
 #print out the hmac key
-#print(authorization)
+# print(authorization)
 #********************************************************#
 
 # ************* SEND THE REQUEST *************
 # Example Endpoint
 # https://api-gateway.coupang.com/v2/providers/openapi/apis/api/v5/vendors/A00012345/ordersheets?createdAtFrom=2025-07-15%2B09:00&createdAtTo=2025-07-25%2B09:00&maxPerPage=50&status=INSTRUCT
-cp_api_path = "https://api-gateway.coupang.com"+cp_url+"?createdAtFrom="+cp_createdAtFrom+"%2B09:00&createdAtTo="+cp_createdAtTo+"%2B09:00&status=INSTRUCT"
+cp_api_path = "https://api-gateway.coupang.com"+cp_url+"?createdAtFrom="+cp_createdAtFrom+"%2B09:00&createdAtTo="+cp_createdAtTo+"%2B09:00&maxPerPage=100&status=INSTRUCT"
 
 
-print(cp_createdAtFrom)
-print(cp_createdAtTo)
+# print(cp_createdAtFrom)
+# print(cp_createdAtTo)
+# print(message)
+print(datetime)
+
+# ************* SEND THE REQUEST *************
+
+req = urllib.request.Request(cp_api_path)
+
+req.add_header("Content-type","application/json;charset=UTF-8")
+req.add_header("Authorization",authorization)
+
+req.get_method = lambda: method
+
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+
+try:
+    resp = urllib.request.urlopen(req,context=ctx)
+except urllib.request.HTTPError as e:
+    print(e.code)
+    print(e.reason)
+    print(e.fp.read())
+except urllib.request.URLError as e:
+    print(e.errno)
+    print(e.reason)
+    print(e.fp.read())
+else:
+    # 200
+    body = resp.read().decode(resp.headers.get_content_charset())
+    print(body)
+
+
+
+
+
+
+
 
 ### 쿠팡 api 연동 End
 
@@ -55,26 +94,6 @@ print(cp_createdAtTo)
 
 # 2. Workbook 만들기
 wb = openpyxl.Workbook()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
